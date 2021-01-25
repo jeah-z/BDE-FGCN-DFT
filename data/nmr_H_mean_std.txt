@@ -1,0 +1,4 @@
+train_nmr_mean= 4.309950495049505
+train_nmr_std= 2.498697502993793
+train_qm_mean= 27.07962178217822
+train_qm_std= 2.7139340027833168
