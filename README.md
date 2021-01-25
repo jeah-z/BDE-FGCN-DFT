@@ -7,14 +7,14 @@ Fig. 1 Architecture of BDE-FGCN model
 # BDE data format of input
 Example:
 
-SMILES,id1,id2,qm,bde,type
+SMILES,id1,id2,qm,bde,type   
 CCC(C)CC(C)C,2,4,-0.030523501145157478,-0.02985865631274702,C-C
 
 This code adopts SMILES as input with the index of two atoms in the rdkit. Above atomic index usually is the same as the index in the SMILES string. 
 
 Example:
 
-SMILES,id1,id2,qm,bde,type
+SMILES,id1,id2,qm,bde,type      
 CCC(C)C,2,2,0.3732913481927531,0.5532308091542087,C-H
 
 If the the bond involve implicit hydrogen, users could input the heavy atom's index twice, this script will detect implicit hydrogen index automatically.
@@ -23,14 +23,14 @@ If the the bond involve implicit hydrogen, users could input the heavy atom's in
 
 Example:
 
-SMILES,id,qm,nmr,type
+SMILES,id,qm,nmr,type    
 [C@H]1([C@H]([C@H]2CCCN2[C@@H]1CO)O)O,1,0.3783899996060892,-0.183985470513843,C
 
 This code adopts SMILES as input with the index of atom in the rdkit. Above atomic index usually is the same as the index in the SMILES string. 
 
 Example:
 
-SMILES,id,qm,nmr,type
+SMILES,id,qm,nmr,type    
 c1ccc(cc1)N(=O)=O,1,7.605982509759489,1.304699548882766,H
 
 If the NMR involves a implicit hydrogen bonded with a heavy atom, users could input the heavy atom's index, this script will detect implicit hydrogen index automatically.
