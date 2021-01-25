@@ -1,7 +1,7 @@
 # BDE-FGCN-DFT
   Prediction of experimental bond dissociation energy and NMR chemical shift with GCN and QM descriptors
 
-![image](https://github.com/jeah-z/BDE-FGCN/blob/main/images/Figure_S1_00.png)
+![image](https://github.com/jeah-z/BDE-FGCN-DFT/blob/main/images/FlowChart.png)
 Fig. 1 Architecture of BDE-FGCN model
 
 # BDE data format of input
