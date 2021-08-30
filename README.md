@@ -10,7 +10,7 @@ Example:
 SMILES,id1,id2,qm,bde,type   
 CCC(C)CC(C)C,2,4,-0.030523501145157478,-0.02985865631274702,C-C
 
-This code adopts SMILES as input with the index of two atoms in the rdkit. Above atomic index usually is the same as the index in the SMILES string. 
+This code adopts SMILES as input with the index of two bonded atoms in the rdkit. Above atomic index usually is the same as the index in the SMILES string. 
 
 Example:
 
@@ -37,31 +37,25 @@ If the NMR involves a implicit hydrogen bonded with a heavy atom, users could in
 
 
 # to train the model 
+For the prediction of bond dissociation energy.
+## Training of the low-dimensional dft model
+```
+python -u model/train.py --model bde --epochs 10000 --saveFreq 20 --train_file ./data/bde_CH_train.csv --valid_file ./data/bde_CH_valid.csv --test_file ./data/bde_CH_test.csv --device cuda:0 --save bde_CH_June7_dft
+```
+## Training of the high-dimensional gcn model that is based on the trained dft model
+```
+python -u model/train.py --model bde --epochs 10000 --saveFreq 20 --train_file ./data/bde_CH_train.csv --valid_file ./data/bde_CH_valid.csv --test_file ./data/bde_CH_test.csv --device cuda:0 --dft_model bde_CH_June7_dft/dft_model_5000 --save bde_CH_June7_gcn
+```
+For the prediction of NMR chemical shift.
+## Training of the low-dimensional dft model
+```
+# nohup python -u model/train.py --model nmr --epochs 30000 --saveFreq 50 --train_file ./data/nmr_C_train.csv --valid_file ./data/nmr_C_valid.csv --test_file ./data/nmr_C_test.csv --device cuda:0 --save nmr_C_June7_dft  > nmr_C_June7_dft.txt 2>&1 &
 
 ```
-mkdir bde_CH_results
-python -u model/train.py \
---model bde \
---epochs 2000 \
---saveFreq 10 \
---train_file ./data/bde_CH_train.csv \
---valid_file ./data/bde_CH_valid.csv \
---test_file ./data/bde_CH_test.csv \
---device cuda:0 \
---save bde_CH_results
+## Training of the high-dimensional gcn model that is based on the trained dft model
 ```
-
-# to evals the model 
-
+python -u model/train.py --model nmr --epochs 10000 --saveFreq 20 --train_file ./data/nmr_C_train.csv --valid_file ./data/nmr_C_valid.csv --test_file ./data/nmr_C_test.csv --device cuda:0 --save nmr_C_June7_gcn  --dft_model nmr_C_June7_dft/dft_model_5000 
 ```
-python model/eval.py --model bde  \
---saved_model trained_model/C-H_BDE \
---test_file data/bde_CH_test.csv \
---device cuda:0 \
---output test_CH_bde.txt
-```
-
-
 # dependency
 
 - rdkit
