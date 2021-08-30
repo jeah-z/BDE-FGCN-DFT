@@ -75,11 +75,11 @@ if datasetType == 'bde':
             test_sampler['bde'] - train_target_mean) / train_target_std
 
         train_sampler['qm'] = (
-            train_sampler['qm'] - train_target_mean) / train_target_std
+            train_sampler['qm'] - train_qm_mean) / train_qm_std
         valid_sampler['qm'] = (
-            valid_sampler['qm'] - train_target_mean) / train_target_std
+            valid_sampler['qm'] - train_qm_mean) / train_qm_std
         test_sampler['qm'] = (
-            test_sampler['qm'] - train_target_mean) / train_target_std
+            test_sampler['qm'] - train_qm_mean) / train_qm_std
 
         mean_file = open(dataset + '_mean_std.txt', 'w')
         # mean_file.writelines('train_parm_mean= %s\n' % (train_parm_mean))
@@ -200,11 +200,11 @@ if datasetType == 'nmr':
             test_sampler['nmr'] - train_target_mean) / train_target_std
 
         train_sampler['qm'] = (
-            train_sampler['qm'] - train_target_mean) / train_target_std
+            train_sampler['qm'] - train_qm_mean) / train_qm_std
         valid_sampler['qm'] = (
-            valid_sampler['qm'] - train_target_mean) / train_target_std
+            valid_sampler['qm'] - train_qm_mean) / train_qm_std
         test_sampler['qm'] = (
-            test_sampler['qm'] - train_target_mean) / train_target_std
+            test_sampler['qm'] - train_qm_mean) / train_qm_std
 
         mean_file = open(dataset + '_mean_std.txt', 'w')
         # mean_file.writelines('train_parm_mean= %s\n' % (train_parm_mean))

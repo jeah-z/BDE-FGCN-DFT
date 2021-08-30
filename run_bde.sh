@@ -1,10 +1,3 @@
-mkdir bde_CH_results
-python -u model/train.py \
---model bde \
---epochs 2000 \
---saveFreq 10 \
---train_file ./data/bde_CH_train.csv \
---valid_file ./data/bde_CH_valid.csv \
---test_file ./data/bde_CH_test.csv \
---device cuda:0 \
---save bde_CH_results
+# nohup python -u model/train.py --model bde --epochs 10000 --saveFreq 20 --train_file ./data/bde_CH_train.csv --valid_file ./data/bde_CH_valid.csv --test_file ./data/bde_CH_test.csv --device cuda:0 --save bde_CH_June7_dft > bde_CH_June7_dft.txt 2>&1 &
+
+nohup python -u model/train.py --model bde --epochs 10000 --saveFreq 20 --train_file ./data/bde_CH_train.csv --valid_file ./data/bde_CH_valid.csv --test_file ./data/bde_CH_test.csv --device cuda:0 --dft_model bde_CH_June7_dft/dft_model_5000 --save bde_CH_June7_gcn > bde_CH_June7_gcn.txt 2>&1 &

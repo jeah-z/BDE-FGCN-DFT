@@ -7,9 +7,10 @@ import argparse
 import torch as th
 import torch.nn as nn
 from torch.utils.data import DataLoader
+# from Alchemy_dataset_qm import TencentAlchemyDataset, batcher
 
 
-def eval(model="", device=th.device("cpu"), test_file='', saved_model='', output=''):
+def eval(model="sch", device=th.device("cpu"), test_file='', saved_model='', output=''):
     print("test start")
     if model == 'nmr':
         from Alchemy_dataset_nmr import TencentAlchemyDataset, batcher
@@ -35,7 +36,9 @@ def eval(model="", device=th.device("cpu"), test_file='', saved_model='', output
         shuffle=False,
         num_workers=0,
     )
+
     model = SchNetModel(norm=False, output_dim=1)
+
     print(model)
     # if model.name in ["MGCN", "SchNet"]:
     #     model.set_mean_std(alchemy_dataset.mean, alchemy_dataset.std, device)
@@ -78,16 +81,16 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-M",
                         "--model",
-                        help="model name (nmr, bde)",
-                        default="")
+                        help="model name (sch_qm)",
+                        default="sch_qm")
     parser.add_argument(
         "--output", help="path to save the evalidation results", default='')
     parser.add_argument("--test_file", help="dataset to test", default="")
-    parser.add_argument("--device", help="device", default='cuda:0')
     parser.add_argument(
         "--saved_model", help="path of saved_model", default="")
-
+    device = th.device('cuda:0' if th.cuda.is_available() else 'cpu')
     args = parser.parse_args()
-    device = th.device(args.device if th.cuda.is_available() else 'cpu')
+    assert args.model in ["bde", "nmr", "literature"]
+    # dataset_split("delaney.csv")
     eval(model=args.model, device=device,
          test_file=args.test_file, saved_model=args.saved_model, output=args.output)

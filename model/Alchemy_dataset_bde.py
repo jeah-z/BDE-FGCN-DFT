@@ -27,7 +27,7 @@ from tqdm.auto import tqdm
 
 
 class AlchemyBatcher:
-    def __init__(self, graph=None, graph0=None, graph1=None, graph2=None, graph3=None, graph4=None, graph5=None, graph6=None, graph7=None, label=None, feature=None, mask=None, mask0=None, mask1=None, mask2=None, mask3=None, mask4=None, mask5=None, mask6=None, mask7=None):
+    def __init__(self, graph=None, graph0=None, graph1=None, graph2=None, graph3=None, graph4=None, graph5=None, graph6=None, graph7=None, label=None, feature=None, dft=None):
         self.graph = graph
         self.graph0 = graph0
         self.graph1 = graph1
@@ -39,21 +39,12 @@ class AlchemyBatcher:
         self.graph7 = graph7
         self.label = label
         self.feature = feature
-
-        self.mask = mask
-        self.mask0 = mask0
-        self.mask1 = mask1
-        self.mask2 = mask2
-        self.mask3 = mask3
-        self.mask4 = mask4
-        self.mask5 = mask5
-        self.mask6 = mask6
-        self.mask7 = mask7
+        self.dft = dft
 
 
 def batcher():
     def batcher_dev(batch):
-        graphs, graph0s, graph1s, graph2s, graph3s, graph4s, graph5s, graph6s, graph7s, labels, features, masks, mask0s, mask1s, mask2s, mask3s, mask4s, mask5s, mask6s, mask7s = zip(
+        graphs, graph0s, graph1s, graph2s, graph3s, graph4s, graph5s, graph6s, graph7s, labels, features, dfts = zip(
             *batch)
         batch_graphs = dgl.batch(graphs)
         batch_graph0s = dgl.batch(graph0s)
@@ -67,398 +58,14 @@ def batcher():
         labels = torch.stack(labels, 0)
         features = torch.stack(features, 0)
 
-        # masks = torch.stack(masks, 0)
-        # mask0s = torch.stack(mask0s, 0)
-        # mask1s = torch.stack(mask1s, 0)
-        # mask2s = torch.stack(mask2s, 0)
-        # mask3s = torch.stack(mask3s, 0)
-        # mask4s = torch.stack(mask4s, 0)
-        # mask5s = torch.stack(mask5s, 0)
-        # mask6s = torch.stack(mask6s, 0)
-        # mask7s = torch.stack(mask7s, 0)
+        dfts = torch.stack(dfts, 0)
 
-        return AlchemyBatcher(graph=batch_graphs, graph0=batch_graph0s, graph1=batch_graph1s, graph2=batch_graph2s, graph3=batch_graph3s, graph4=batch_graph4s, graph5=batch_graph5s, graph6=batch_graph6s, graph7=batch_graph7s, label=labels, feature=features, mask=masks, mask0=mask0s, mask1=mask1s, mask2=mask2s, mask3=mask3s, mask4=mask4s, mask5=mask5s, mask6=mask6s, mask7=mask7s)
+        return AlchemyBatcher(graph=batch_graphs, graph0=batch_graph0s, graph1=batch_graph1s, graph2=batch_graph2s, graph3=batch_graph3s, graph4=batch_graph4s, graph5=batch_graph5s, graph6=batch_graph6s, graph7=batch_graph7s, label=labels, feature=features, dft=dfts)
 
     return batcher_dev
 
 
 class TencentAlchemyDataset(Dataset):
-    '''
-    def alchemy_nodes(self, mol, set):
-        """Featurization for all atoms in a molecule. The atom indices
-        will be preserved.
-
-        Args:
-            mol : rdkit.Chem.rdchem.Mol
-              RDKit molecule object
-        Returns
-            atom_feats_dict : dict
-              Dictionary for atom features
-        """
-        atom_feats_dict = defaultdict(list)
-        is_donor = defaultdict(int)
-        is_acceptor = defaultdict(int)
-
-        fdef_name = osp.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
-        mol_featurizer = ChemicalFeatures.BuildFeatureFactory(fdef_name)
-        mol_feats = mol_featurizer.GetFeaturesForMol(mol)
-        mol_conformers = mol.GetConformers()
-        assert len(mol_conformers) == 1
-        geom = mol_conformers[0].GetPositions()
-
-        for i in range(len(mol_feats)):
-            if mol_feats[i].GetFamily() == 'Donor':
-                node_list = mol_feats[i].GetAtomIds()
-                for u in node_list:
-                    is_donor[u] = 1
-            elif mol_feats[i].GetFamily() == 'Acceptor':
-                node_list = mol_feats[i].GetAtomIds()
-                for u in node_list:
-                    is_acceptor[u] = 1
-
-        num_atoms = mol.GetNumAtoms()
-        num_set = len(set)
-        for u in set:
-            atom = mol.GetAtomWithIdx(u)
-            symbol = atom.GetSymbol()
-            atom_type = atom.GetAtomicNum()
-            aromatic = atom.GetIsAromatic()
-            hybridization = atom.GetHybridization()
-            num_h = atom.GetTotalNumHs()
-            atom_feats_dict['pos'].append(torch.FloatTensor(geom[u]))
-            atom_feats_dict['node_type'].append(atom_type)
-
-            h_u = []
-            h_u += [
-                int(symbol == x) for x in ['H', 'C', 'N', 'O', 'F', 'S', 'Cl', 'Si', 'Br']
-            ]
-            h_u.append(atom_type)
-            h_u.append(is_acceptor[u])
-            h_u.append(is_donor[u])
-            h_u.append(int(aromatic))
-            h_u += [
-                int(hybridization == x)
-                for x in (Chem.rdchem.HybridizationType.SP,
-                          Chem.rdchem.HybridizationType.SP2,
-                          Chem.rdchem.HybridizationType.SP3)
-            ]
-            h_u.append(num_h)
-            atom_feats_dict['n_feat'].append(torch.FloatTensor(h_u))
-
-        atom_feats_dict['n_feat'] = torch.stack(atom_feats_dict['n_feat'],
-                                                dim=0)
-        atom_feats_dict['pos'] = torch.stack(atom_feats_dict['pos'], dim=0)
-        atom_feats_dict['node_type'] = torch.LongTensor(
-            atom_feats_dict['node_type'])
-        return atom_feats_dict
-
-    def alchemy_edges(self, mol, set, self_loop=True):
-        """Featurization for all bonds in a molecule. The bond indices
-        will be preserved.
-
-        Args:
-          mol : rdkit.Chem.rdchem.Mol
-            RDKit molecule object
-
-        Returns
-          bond_feats_dict : dict
-              Dictionary for bond features
-        """
-        bond_feats_dict = defaultdict(list)
-
-        mol_conformers = mol.GetConformers()
-        assert len(mol_conformers) == 1
-        geom = mol_conformers[0].GetPositions()
-
-        num_atoms = mol.GetNumAtoms()
-        num_set = len(set)
-        for u in set:
-            for v in set:
-                if u == v and not self_loop:
-                    continue
-
-                e_uv = mol.GetBondBetweenAtoms(u, v)
-                if e_uv is None:
-                    bond_type = None
-                else:
-                    bond_type = e_uv.GetBondType()
-                bond_feats_dict['e_feat'].append([
-                    float(bond_type == x)
-                    for x in (Chem.rdchem.BondType.SINGLE,
-                              Chem.rdchem.BondType.DOUBLE,
-                              Chem.rdchem.BondType.TRIPLE,
-                              Chem.rdchem.BondType.AROMATIC, None)
-                ])
-                bond_feats_dict['distance'].append(
-                    np.linalg.norm(geom[u] - geom[v]))
-
-        bond_feats_dict['e_feat'] = torch.FloatTensor(
-            bond_feats_dict['e_feat'])
-        bond_feats_dict['distance'] = torch.FloatTensor(
-            bond_feats_dict['distance']).reshape(-1, 1)
-
-        return bond_feats_dict
-
-    def atom_mask(self, mol, ids):
-        num_atoms = mol.GetNumAtoms()
-        mask = [[0]]*num_atoms
-        for id in ids:
-            mask[id] = [1]
-        return mask
-
-    def h_bonded(self, atoms, set_in):
-        neighb = []
-        for indx in set_in:
-            atom = atoms[indx]
-            bonds = atom.GetBonds()
-            for bond in bonds:
-                idxBegin = bond.GetBeginAtomIdx()
-                idxEnd = bond.GetEndAtomIdx()
-                neighb.append(idxBegin)
-                neighb.append(idxEnd)
-        # print(neighb)
-        neighb = list(set(neighb))
-        # print(neighb)
-        H_id = ''
-        for idx in neighb:
-            atom = atoms[idx]
-            if atom.GetAtomicNum() == 1:
-                # print(idx)
-                H_id = idx
-                # print("H_id= %s" % (H_id))
-                break
-        if H_id == '':
-            print("No bonded H was found, please check the input!")
-        return H_id
-
-    def feats_cal(self, mol, ids):
-        features = []
-        fdef_name = osp.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
-        chem_feature_factory = ChemicalFeatures.BuildFeatureFactory(fdef_name)
-        atoms = mol.GetAtoms()
-        # Calculation of the properties.
-        Chem.rdPartialCharges.ComputeGasteigerCharges(
-            mol, throwOnParamFailure=True)
-        (CrippenlogPs, CrippenMRs) = zip(
-            *(Chem.rdMolDescriptors._CalcCrippenContribs(mol)))
-        TPSAs = Chem.rdMolDescriptors._CalcTPSAContribs(mol)
-        (LaASAs, x) = Chem.rdMolDescriptors._CalcLabuteASAContribs(mol)
-
-        # Both bonded atomic features
-
-        for idxA in ids:
-            AtomicNum = atoms[idxA].GetAtomicNum()  # 1.
-            symbol = atoms[idxA].GetSymbol()      # 2
-            # 3.
-            GasteigerCharge = atoms[idxA].GetDoubleProp("_GasteigerCharge")
-            TotalDegree = atoms[idxA].GetTotalDegree()  # 4.
-            MinRingSize = [0]*6
-            for n in range(3, 8):
-                if(atoms[idxA].IsInRingSize(n)):
-                    MinRingSize[n-3] = 1  # 5
-                    break
-            CrippenlogP = CrippenlogPs[idxA]  # 6
-            CrippenMR = CrippenMRs[idxA]  # 7
-            TPSA = TPSAs[idxA]  # 8
-            LaASA = LaASAs[idxA]  # 9
-            aromatic = atoms[idxA].GetIsAromatic()  # 10
-            hybridization = atoms[idxA].GetHybridization()  # 11
-            num_h = atoms[idxA].GetTotalNumHs()  # 12
-            #  appending features to single list
-            features.append(AtomicNum)  # 1
-            features += [
-                int(symbol == x) for x in ['H', 'C', 'N', 'O', 'F', 'S', 'Cl', 'Si', 'Br']
-            ]  # 2
-            features.append(GasteigerCharge)  # 3
-            features.append(TotalDegree)  # 4
-            features += MinRingSize  # 5
-            features.append(CrippenlogP)  # 6
-            features.append(CrippenMR)  # 7
-            features.append(TPSA)  # 8
-            features.append(LaASA)  # 9
-            features += [
-                int(hybridization == x)
-                for x in (Chem.rdchem.HybridizationType.SP,
-                          Chem.rdchem.HybridizationType.SP2,
-                          Chem.rdchem.HybridizationType.SP3)
-            ]  # 10
-            features.append(int(aromatic))  # 11 aromatic
-            features.append(num_h)  # 12 num_h
-        # Bond features
-        bond = mol.GetBondBetweenAtoms(ids[0], ids[1])
-        # print("id1=%s,id2=%s" % (ids[0], ids[1]))
-        bond_type = bond.GetBondType()  # b 1
-
-        mol_conformers = mol.GetConformers()
-        geom = mol_conformers[0].GetPositions()
-        distance = np.linalg.norm(geom[ids[1]] - geom[ids[0]])  # b 2
-
-        features += [float(bond_type == x)
-                     for x in (Chem.rdchem.BondType.SINGLE,
-                               Chem.rdchem.BondType.DOUBLE,
-                               Chem.rdchem.BondType.TRIPLE,
-                               Chem.rdchem.BondType.AROMATIC, None)
-                     ]
-        features.append(distance)
-        return features
-
-    def canonicalize_smiles(self, smiles):
-        """ Return a consistent SMILES representation for the given molecule """
-        mol = rdkit.Chem.MolFromSmiles(smiles)
-        return rdkit.Chem.MolToSmiles(mol)
-
-    def fragment(self, smiles, ids):
-        def neighb_set(atoms, set_in):
-            neighb = []
-            for indx in set_in:
-                atom = atoms[indx]
-                bonds = atom.GetBonds()
-                for bond in bonds:
-                    idxBegin = bond.GetBeginAtomIdx()
-                    idxEnd = bond.GetEndAtomIdx()
-                    neighb.append(idxBegin)
-                    neighb.append(idxEnd)
-            # print(neighb)
-            neighb = list(set(neighb))
-            # print(neighb)
-            return neighb
-
-        def frag_cal(mol, set0):
-            mh = rdkit.Chem.RWMol(mol)
-            a1 = int(set0[0])
-            a2 = int(set0[1])
-            mh.RemoveBond(a1, a2)
-            mh.GetAtomWithIdx(a1).SetNoImplicit(True)
-            mh.GetAtomWithIdx(a2).SetNoImplicit(True)
-
-            # Call SanitizeMol to update radicals
-            rdkit.Chem.SanitizeMol(mh)
-            # Convert the two molecules into a SMILES string
-            fragmented_smiles = rdkit.Chem.MolToSmiles(mh)
-            print(fragmented_smiles.split('.'))
-            # Split fragment and canonicalize
-            if len(fragmented_smiles.split('.')) == 1:
-                frag1 = fragmented_smiles.split('.')[0]
-                frag2 = frag1
-            else:
-                frag1, frag2 = sorted(fragmented_smiles.split('.'))
-            frag1 = self.canonicalize_smiles(frag1)
-            frag2 = self.canonicalize_smiles(frag2)
-            print("Frag1=%s; \t Frag2=%s" % (frag1, frag2))
-            return frag1, frag2
-
-        mol = rdkit.Chem.MolFromSmiles(smiles)
-        mol = rdkit.Chem.rdmolops.AddHs(mol)
-        rdkit.Chem.Kekulize(mol, clearAromaticFlags=True)
-        atoms = mol.GetAtoms()
-        a1 = int(ids[0])
-        a2 = int(ids[1])
-        set0 = [a1, a2]
-        set1 = neighb_set(atoms, set0)
-        set2 = neighb_set(atoms, set1)
-        set3 = neighb_set(atoms, set2)
-        set4 = neighb_set(atoms, set3)
-        set5 = neighb_set(atoms, set4)
-        set6 = neighb_set(atoms, set5)
-        set7 = neighb_set(atoms, set6)
-        return set0, set1, set2, set3, set4, set5, set6, set7
-
-    def smi_graph(self, frag, set=[], self_loop=False):
-
-        mol = rdkit.Chem.MolFromSmiles(frag)
-        mol = rdkit.Chem.rdmolops.AddHs(mol)
-        rdkit.Chem.Kekulize(mol, clearAromaticFlags=True)
-        AllChem.Compute2DCoords(mol)
-        g = dgl.DGLGraph()
-        # add nodes
-        num_atoms = mol.GetNumAtoms()
-        if set == []:
-            set = list(range(num_atoms))
-        atom_feats = self.alchemy_nodes(mol, set)
-        num_set = len(set)
-        g.add_nodes(num=num_set, data=atom_feats)
-        if self_loop:
-            g.add_edges(
-                [i for i in range(num_set) for j in range(num_set)],
-                [j for i in range(num_set) for j in range(num_set)])
-        else:
-            g.add_edges(
-                [i for i in range(num_set) for j in range(num_set - 1)], [
-                    j for i in range(num_set)
-                    for j in range(num_set) if i != j
-                ])
-
-        bond_feats = self.alchemy_edges(mol, set, self_loop)
-        g.edata.update(bond_feats)
-        return g
-
-    def smi_to_dgl(self, smi_id, self_loop=False):
-        """
-        Read sdf file and convert to dgl_graph
-        Args:
-            sdf_file: path of sdf file
-            self_loop: Whetaher to add self loop
-        Returns:
-            g: DGLGraph
-            l: related labels
-        """
-        try:
-
-            smi = smi_id[0]
-            print(f'Processing {smi}:')
-            id1 = smi_id[1]
-            id2 = smi_id[2]
-            exp_val = smi_id[3]
-            # smi = self.target.loc[index]['SMILES']
-            # print(smi)
-            # id1 = int(self.target.loc[index]['id1'])
-            # id2 = int(self.target.loc[index]['id2'])
-
-            mol = rdkit.Chem.MolFromSmiles(smi)
-            mol = rdkit.Chem.rdmolops.AddHs(mol)
-            rdkit.Chem.Kekulize(mol, clearAromaticFlags=True)
-            AllChem.Compute2DCoords(mol)
-            atoms = mol.GetAtoms()
-            ids = [id1, id2]
-            # print("ids= %s" % (str(ids)))
-            if ids[0] == ids[1]:
-                ids[1] = self.h_bonded(atoms, ids)
-            # print("ids= %s" % (str(ids)))
-            set0, set1, set2, set3, set4, set5, set6, set7 = self.fragment(
-                smi, ids)
-            g = self.smi_graph(smi)
-            g0 = self.smi_graph(smi, set0)
-            g1 = self.smi_graph(smi, set1)
-            g2 = self.smi_graph(smi, set2)
-            g3 = self.smi_graph(smi, set3)
-            g4 = self.smi_graph(smi, set4)
-            g5 = self.smi_graph(smi, set5)
-            g6 = self.smi_graph(smi, set6)
-            g7 = self.smi_graph(smi, set7)
-
-            features = self.feats_cal(mol, ids)
-            # print(len(features))
-            # for val/test set, labels are molecule ID
-            features = torch.FloatTensor(features)
-            # exp_val = float(self.target.loc[index]['exp_val'])
-            l = torch.FloatTensor([exp_val])
-
-            # mask = self.atom_mask(mol, ids)
-            # mask = ids
-            # mask = torch.IntTensor(mask)
-            # features = self.feats_cal(mol, ids)
-            # print(len(features))
-            # features = torch.FloatTensor(features)
-            # l = torch.FloatTensor(self.target.loc[int(sdf_file.stem)].tolist()) \
-            #     if self.mode == 'dev' else torch.LongTensor([int(sdf_file.stem)])
-            print(f'Processing {smi} : finished!')
-            # result_list = [g, g0, g1, g2, g3, g4, g5, g6, g7, l, features]
-            return (g, g0, g1, g2, g3, g4, g5, g6, g7, l, features)
-        except:
-            print(
-                f'Processing {smi} {id1} {id2} {exp_val}: error encountered!')
-            return None
-'''
     file_path = ""
 
     fdef_name = osp.join(RDConfig.RDDataDir, 'BaseFeatures.fdef')
@@ -809,38 +416,22 @@ class TencentAlchemyDataset(Dataset):
                 num_atoms = mol.GetNumAtoms()
                 atomSet = list(range(num_atoms))
                 g = mol_graph(mol, atomSet, ids)
-                mask = torch.FloatTensor([[int(i in ids)] for i in atomSet])
-
                 g0 = mol_graph(mol, set0, ids)
-                mask0 = torch.FloatTensor([[int(i in ids)] for i in set0])
                 g1 = mol_graph(mol, set1, ids)
-                mask1 = torch.FloatTensor([[int(i in ids)] for i in set1])
                 g2 = mol_graph(mol, set2, ids)
-                mask2 = torch.FloatTensor([[int(i in ids)] for i in set2])
                 g3 = mol_graph(mol, set3, ids)
-                mask3 = torch.FloatTensor([[int(i in ids)] for i in set3])
                 g4 = mol_graph(mol, set4, ids)
-                mask4 = torch.FloatTensor(
-                    [[int(i in ids)] for i in set4])
                 g5 = mol_graph(mol, set5, ids)
-                mask5 = torch.FloatTensor(
-                    [[int(i in ids)] for i in set5])
                 g6 = mol_graph(mol, set6, ids)
-                mask6 = torch.FloatTensor(
-                    [[int(i in ids)] for i in set6])
                 g7 = mol_graph(mol, set7, ids)
-                mask7 = torch.FloatTensor(
-                    [[int(i in ids)] for i in set7])
 
                 features = feats_cal(mol, ids)
-                # print(len(features))
-                # for val/test set, labels are molecule ID
                 features = torch.FloatTensor(features)
-                # exp_val = float(self.target.loc[index]['exp_val'])
                 l = torch.FloatTensor([exp_val])
-                # print(f'Processing {smi} : finished!')
-                # result_list = [g, g0, g1, g2, g3, g4, g5, g6, g7, l, features]
-                return (g, g0, g1, g2, g3, g4, g5, g6, g7, l, features, mask, mask0, mask1, mask2, mask3, mask4, mask5, mask6, mask7)
+                dft = torch.FloatTensor([dft])
+
+
+                return (g, g0, g1, g2, g3, g4, g5, g6, g7, l, features,dft)
 
             # except Exception as e:
             #     print(e)
@@ -860,8 +451,7 @@ class TencentAlchemyDataset(Dataset):
 
         self.graphs, self.graph0s,  self.graph1s, self.graph2s, self.graph3s, self.graph4s, self.graph5s, self.graph6s, self.graph7s, self.labels, self.features = [
         ], [], [], [], [], [], [], [], [], [], []
-        self.mask, self.mask0, self.mask1, self.mask2, self.mask3, self.mask4, self.mask5, self.mask6, self.mask7 = [
-        ], [], [], [], [], [], [], [], []
+        self.dfts=[]
         # t_index = list(self.target.index)
         smi_id_list = []
         for index in self.target.index:
@@ -913,16 +503,7 @@ class TencentAlchemyDataset(Dataset):
             self.graph7s.append(result[8])
             self.labels.append(result[9])
             self.features.append(result[10])
-
-            self.mask.append(result[11])
-            self.mask0.append(result[12])
-            self.mask1.append(result[13])
-            self.mask2.append(result[14])
-            self.mask3.append(result[15])
-            self.mask4.append(result[16])
-            self.mask5.append(result[17])
-            self.mask6.append(result[18])
-            self.mask7.append(result[19])
+            self.dfts.append(result[11])
 
         self.normalize()
         print(len(self.graphs), "loaded!")
@@ -942,8 +523,7 @@ class TencentAlchemyDataset(Dataset):
     def __getitem__(self, idx):
         g, g0, g1, g2, g3, g4, g5, g6, g7, l, fts = self.graphs[idx], self.graph0s[idx],  self.graph1s[idx], self.graph2s[
             idx], self.graph3s[idx], self.graph4s[idx], self.graph5s[idx], self.graph6s[idx], self.graph7s[idx],  self.labels[idx], self.features[idx]
-        mask, mask0, mask1, mask2, mask3, mask4, mask5, mask6, mask7 = self.mask[
-            idx], self.mask0[idx], self.mask1[idx], self.mask2[idx], self.mask3[idx], self.mask4[idx], self.mask5[idx], self.mask6[idx], self.mask7[idx]
+        dft = self.dfts[idx]
         if self.transform:
             g = self.transform(g)
             g0 = self.transform(g0)
@@ -955,7 +535,7 @@ class TencentAlchemyDataset(Dataset):
             g6 = self.transform(g6)
             g7 = self.transform(g7)
 
-        return g, g0, g1, g2, g3, g4, g5, g6, g7, l, fts, mask, mask0, mask1, mask2, mask3, mask4, mask5, mask6, mask7
+        return g, g0, g1, g2, g3, g4, g5, g6, g7, l, fts, dft
 
 
 if __name__ == '__main__':

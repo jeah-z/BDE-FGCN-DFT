@@ -1,0 +1,4 @@
+train_bde_mean= 85.74910714285714
+train_bde_std= 15.04110359666169
+train_qm_mean= 86.92531249999999
+train_qm_std= 14.118932488344367
